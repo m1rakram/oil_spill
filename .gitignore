@@ -1,2 +1,8 @@
-datasets
+datasets/new_images
+datasets/real_images
+datasets/synthetic_images
+datasets/zip_files
+
 oilspill
+checkpoints
+runs
