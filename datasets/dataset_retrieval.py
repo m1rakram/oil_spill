@@ -119,7 +119,6 @@ class real_data(Dataset):
         image = transform(image)
 
 
-
         return image
     
 
@@ -179,8 +178,7 @@ class contrastive_data(Dataset):
     def __getitem__(self, idx):
 
         image = Image.open(self.image_path + self.images[idx])
-        transform = transforms.Compose([transforms.ToTensor()])
-        image = transform(image)
+        #image = transforms.ToTensor()(image)
 
         images = []
         if(self.transforms):
@@ -195,8 +193,10 @@ class contrastive_data(Dataset):
 
 
 
-
-        return image
+        return images
 
     def __len__(self):
         return len(self.images)
+
+
+

@@ -113,6 +113,7 @@ def train(backbone, mlp, head, mt_backbone, mt_head, syn_dataset, con_dataset, s
         metrics = Metrics(num_of_classes_seg, 0)
 
         consistency_weight = 1.0
+        print("arrived")
 
         # iterator for contrastive learning
         con_iterator = enumerate(con_dataset)
@@ -192,7 +193,8 @@ def train(backbone, mlp, head, mt_backbone, mt_head, syn_dataset, con_dataset, s
             # contrastive learning by using real datasets
             try:
                 _, batch = next(con_iterator)
-            except:
+            except Exception as e:
+                print(e)
                 con_iterator = enumerate(con_dataset)
                 _, batch = next(con_iterator)
             
@@ -268,7 +270,6 @@ def main():
     syn_val = synthetic_data("val")
 
 
-    
 
 
     data_syn_train = DataLoader(
@@ -282,8 +283,8 @@ def main():
         con_train,
         batch_size = 4,
         shuffle = True,
-        num_workers = 4,
-        drop_last=True
+        num_workers = 2,
+        drop_last=False
     )
 
 

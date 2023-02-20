@@ -102,10 +102,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', default = "segformer_b0_v2", help='trained model keyword')
     parser.add_argument('--dataset',  default = "real", help='dataset for validation')
-    parser.add_argument('--model_path', default = "synthetic.pth", help='path name')
+    parser.add_argument('--model_path', default = "domain_adapted.pth", help='path name')
     parser.add_argument('--task', default = "segmentation", help='task type')
     parser.add_argument('--visual_flag', type = bool, default = True, help = 'To know if purpose is batch testing or visualisation')
-    parser.add_argument('--image_id', type = int, default=201, help='ID of image')
+    parser.add_argument('--image_id', type = int, default=200, help='ID of image')
     args = parser.parse_args()
 
     checkpoint = torch.load(save_model_path + args.model_path)

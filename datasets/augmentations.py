@@ -43,7 +43,7 @@ class CropImage(object):
         
         else:
             image = transforms.Resize((1024, 1024), transforms.InterpolationMode.BILINEAR)(image)
-            image = transforms.RandomCrop((self.output_size, self.output_size))
+            image = transforms.RandomCrop((self.output_size, self.output_size))(image)
 
         
         
