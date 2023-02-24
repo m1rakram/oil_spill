@@ -11,7 +11,7 @@ import numpy as np
 
 
 
-w_class2 = np.array([ 0.0,  1.0,  1.0 ])
+w_class2 = np.array([ 1.0,  1.0,  1.0 ])
 w_class2 = torch.from_numpy(w_class2)
 
 

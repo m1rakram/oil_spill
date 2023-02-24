@@ -102,7 +102,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', default = "segformer_b0_v2", help='trained model keyword')
     parser.add_argument('--dataset',  default = "real", help='dataset for validation')
-    parser.add_argument('--model_path', default = "domain_adapted.pth", help='path name')
+    parser.add_argument('--model_path', default = "domain_adapted_24.pth", help='path name')
     parser.add_argument('--task', default = "segmentation", help='task type')
     parser.add_argument('--visual_flag', type = bool, default = True, help = 'To know if purpose is batch testing or visualisation')
     parser.add_argument('--image_id', type = int, default=200, help='ID of image')

@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 
 
-def info_nce_loss(features, batch_size = 4, n_views = 2):
+def info_nce_loss(features, batch_size = 8, n_views = 2):
 
         labels = torch.cat([torch.arange(batch_size) for i in range(n_views)], dim=0)
         labels = (labels.unsqueeze(0) == labels.unsqueeze(1)).float()

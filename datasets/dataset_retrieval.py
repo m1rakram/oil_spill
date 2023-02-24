@@ -41,20 +41,23 @@ class synthetic_data(Dataset):
 
         image = Image.open(self.image_path + self.images[idx])
         label = Image.open(self.label_path + self.images[idx].replace("S", "L"))
+        label = np.asarray(label)
+        label_copy = np.copy(label)
+
+        label = self.add_sea(label_copy)
+
 
         transform = transforms.Compose([transforms.ToTensor()])
         image = transform(image)
         transform = transforms.Compose([transforms.PILToTensor()])
-        label = transform(label)/255
+        label = transform(Image.fromarray(label))/255
+
 
         if(self.transforms):
             image, label = self.transforms(image, label)
         else:
             #resize to 512x512
             image, label = self.resize(image, label)
-
-
-
 
 
         return image, label
@@ -67,6 +70,15 @@ class synthetic_data(Dataset):
     
     def __len__(self):
         return len(self.images)
+    
+
+    def add_sea(self, label):
+        for i in range(label.shape[0]):
+            for j in range(label.shape[1]):
+                if(sum(label[i][j])==0):
+                    label[i][j][0] = 255
+        return label
+
 
 
 

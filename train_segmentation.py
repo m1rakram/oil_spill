@@ -27,7 +27,7 @@ curr_epoch = 0
 use_pretrained = False
 num_of_classes_seg = 3      #5 classes including null
 save_model_path = "checkpoints/"    #checkpoints to be stored
-pth_name =  "synthetic.pth"
+pth_name =  "synthetic_v2.pth"
 
 
 
@@ -37,7 +37,7 @@ def val(backbone, head, data_seg_val, loss_function, writer, epoch):
 
 
     data_iterator = enumerate(data_seg_val)     #take batches
-    metric = new_metrics(num_of_classes_seg, 0)
+    metric = new_metrics(num_of_classes_seg)
     with torch.no_grad():
 
         head.eval()    #switch model to evaluation mode

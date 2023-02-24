@@ -18,9 +18,9 @@ num_of_classes_seg = constants.NUM_CLASSES_SEG
 image_size = constants.IMAGE_H    # as images are squared no need for tuple
 image_h = constants.IMAGE_H
 n_classes = constants.NUM_CLASSES_SEG
-MAP_COLORS = [[0, 0, 0, 0],   # Sea 
+MAP_COLORS = [[0, 0, 255, 30],   # Sea 
                 [0, 255, 0, 80],   # platform 
-                [0, 0, 255, 80]]    # oil
+                [255, 0, 0, 80]]    # oil
 
 
 
@@ -183,11 +183,11 @@ def metrics_correction(logits):
 
 
 class new_metrics:
-    def __init__(self, num_classes, ignore_label):
+    def __init__(self, num_classes, ignore_label=0):
         self.ignore_label = ignore_label
         self.num_classes = num_classes
-        self.iou = np.zeros(4, dtype=float)
-        self.iou_count = np.zeros(4, dtype=int)
+        self.iou = np.zeros(3, dtype=float)
+        self.iou_count = np.zeros(3, dtype=int)
         self.image_count = 0
         self.mious = 0.0
 
@@ -201,22 +201,24 @@ class new_metrics:
             iou = np.zeros(4, dtype=float)
             
 
-            for cl in range(1,3):
+            for cl in range(0,3):
+                
                 pred_logits = np.squeeze(np.asarray((pred == cl).cpu().detach().numpy(), dtype=int))
-                label_logits =  np.squeeze(np.asarray((target == cl).cpu().detach().numpy(), dtype=int))                
+                label_logits =  np.squeeze(np.asarray((target == cl).cpu().detach().numpy(), dtype=int))
+                                
+                if(np.sum(label_logits)>0 or np.sum(pred_logits)>0):        
+                    equality = np.sum(pred_logits*label_logits, dtype = float)
                     
-                equality = np.sum(pred_logits*label_logits, dtype = float)
-                
-                non_equality = np.sum((label_logits - pred_logits) == 1, dtype = float)
-                if(non_equality+equality!=0):
-                    iou[cl] = equality/(equality + non_equality)
-                
-                else:
-                    iou[cl] = 0.0
+                    non_equality = np.sum((label_logits - pred_logits) == 1, dtype = float)
+                    if(non_equality+equality!=0):
+                        iou[cl] = equality/(equality + non_equality)
+                    
+                    else:
+                        iou[cl] = 0.0
 
-                self.iou[cl] += iou[cl]
-                self.iou_count[cl] +=1
-                iou_flag +=1
+                    self.iou[cl] += iou[cl]
+                    self.iou_count[cl] +=1
+                    iou_flag +=1
             
             if(iou_flag > 0):
                 

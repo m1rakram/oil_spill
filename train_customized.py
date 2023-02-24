@@ -13,7 +13,7 @@ from models.segformer_utils.heads import MLP_head
 from loss import DiceLoss
 from domain_adaptation.SimCLR.info_nce import info_nce_loss
 from domain_adaptation.SimCLR.ST_utils import define_mix_type, update_ema_variables, define_pixel_weight
-from utils import poly_lr_scheduler, Metrics, print_results
+from utils import poly_lr_scheduler, Metrics, print_results, new_metrics
 
 
 import numpy as np
@@ -38,11 +38,11 @@ image_h = constants.IMAGE_H
 image_tuple = constants.IMAGE_SIZE
 
 save_model_path = "checkpoints/"    #checkpoints to be stored
-init_name =  "pretrained.pth"
-pth_name = "domain_adapted.pth"
+init_name =  "synthetic_v2.pth"
+pth_name = "domain_adapted_v2.pth"
 
 curr_epoch = 0
-use_pretrained = False
+use_pretrained = True
 
 
 def upload_pretrained_weights(model, pretrained_model):
@@ -56,7 +56,7 @@ def val(backbone, model, data_seg_val, loss_function, writer, epoch):
 
 
     data_iterator = enumerate(data_seg_val)     #take batches
-    metric = Metrics(num_of_classes_seg, 0)
+    metric = new_metrics(num_of_classes_seg, 0)
     with torch.no_grad():
 
         model.eval()    #switch model to evaluation mode
@@ -110,7 +110,7 @@ def train(backbone, mlp, head, mt_backbone, mt_head, syn_dataset, con_dataset, s
         head.train()
         
         
-        metrics = Metrics(num_of_classes_seg, 0)
+        metrics = new_metrics(num_of_classes_seg, 0)
 
         consistency_weight = 1.0
         print("arrived")
@@ -154,39 +154,39 @@ def train(backbone, mlp, head, mt_backbone, mt_head, syn_dataset, con_dataset, s
 
 
             # Self training starts:
-            # code has been taken from https://github.com/WilhelmT/ClassMix
+            # # code has been taken from https://github.com/WilhelmT/ClassMix
 
-            image_st = batch
+            # image_st = batch
 
-            image_mt = weakTransform(image_st)
+            # image_mt = weakTransform(image_st)
             
-            with amp.autocast():
-                with torch.no_grad():  
+            # with amp.autocast():
+            #     with torch.no_grad():  
 
-                    mt_pred = mt_head(mt_backbone(image_mt.cuda()))
+            #         mt_pred = mt_head(mt_backbone(image_mt.cuda()))
 
-                mt_pred = weakTransform(mt_pred) 
+            #     mt_pred = weakTransform(mt_pred) 
 
                 
-                softmax_u_w = torch.softmax(mt_pred.detach(), dim=1)
-                max_probs, argmax_u_w = torch.max(softmax_u_w, dim=1)
+            #     softmax_u_w = torch.softmax(mt_pred.detach(), dim=1)
+            #     max_probs, argmax_u_w = torch.max(softmax_u_w, dim=1)
 
-                # define mixmask
-                MixMask = define_mix_type(image_st, max_probs, argmax_u_w, "class")
+            #     # define mixmask
+            #     MixMask = define_mix_type(image_st, max_probs, argmax_u_w, "class")
 
-                # transform the label from teacher and image for student with the same transform
-                image_s, prediction_pseudo = strongTransform(image_st.cuda(), softmax_u_w.cuda(), MixMask)  
+            #     # transform the label from teacher and image for student with the same transform
+            #     image_s, prediction_pseudo = strongTransform(image_st.cuda(), softmax_u_w.cuda(), MixMask)  
 
-                #inference on student
-                pred_st = head(backbone(image_s.cuda()))
+            #     #inference on student
+            #     pred_st = head(backbone(image_s.cuda()))
 
-                max_probs, pseudo_label = torch.max(prediction_pseudo, dim=1)
+            #     max_probs, pseudo_label = torch.max(prediction_pseudo, dim=1)
 
-                #pixel_weight = define_pixel_weight(max_probs, pseudo_label, None, epoch*len(syn_dataset) + it)
+            #     #pixel_weight = define_pixel_weight(max_probs, pseudo_label, None, epoch*len(syn_dataset) + it)
 
-                loss_st = consistency_weight * loss_CE(pred_st, pseudo_label)
+            #     loss_st = consistency_weight * loss_CE(pred_st, pseudo_label)
             
-            #loss = loss_syn_sup + loss_st
+            # #loss = loss_syn_sup + loss_st
 
                         
 
@@ -210,19 +210,16 @@ def train(backbone, mlp, head, mt_backbone, mt_head, syn_dataset, con_dataset, s
             
             #scaler.scale(loss_con).backward()
             
-            loss = loss_syn_sup + loss_st + loss_con
+            loss = loss_syn_sup + loss_con
             
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
 
-            # update ema model
-            alpha_teacher = 0.99
-            mt_backbone, mt_head = update_ema_variables( ema_backbone = mt_backbone,ema_head = mt_head, backbone = backbone, head =head, alpha_teacher=alpha_teacher, iteration=epoch*len(syn_dataset) + it)
 
             
             tq.update(1)
-            tq.set_postfix(loss_st='%.6f, loss_seg = %.6f, loss_con = %.6f' % (loss_st.item(), loss_syn_sup.item(), loss_con.item()))
+            tq.set_postfix(loss_st='%.6f, loss_seg = %.6f, loss_con = %.6f' % (0, loss_syn_sup.item(), loss_con.item()))
 
         tq.close()
 
@@ -236,9 +233,7 @@ def train(backbone, mlp, head, mt_backbone, mt_head, syn_dataset, con_dataset, s
         checkpoint = {
             'epoch': epoch + 1,
             'state_dict_backbone': backbone.state_dict(),
-            'state_dict_ema_backbone': mt_backbone.state_dict(),
             'state_dict_head': head.state_dict(),
-            'state_dict_ema_head': mt_head.state_dict(),
             'state_dict_mlp': mlp.state_dict(),
 
             'optimizer': optimizer.state_dict()
@@ -276,15 +271,15 @@ def main():
         syn_train,
         batch_size = 4,
         shuffle = True,
-        num_workers=4
+        num_workers=2
     )
 
     contrastive_dataloader = DataLoader(
         con_train,
-        batch_size = 4,
+        batch_size = 8,
         shuffle = True,
         num_workers = 2,
-        drop_last=False
+        drop_last=True
     )
 
 
@@ -309,16 +304,9 @@ def main():
     head = SegFormerHead(in_channels=[32, 64, 160, 256], num_classes=3, embed_dim=512)
     mlp = MLP_head(in_channels=[32, 64, 160, 256])
 
-    full_model = SegFormer(backbone, head)
     
-    # mean teacher architecture
-    mt_backbone = mit_b0()
-    mt_head = SegFormerHead(in_channels=[32, 64, 160, 256], num_classes=3, embed_dim=512)
 
-    for param in mt_backbone.parameters():
-        param.detach_()
-    for param in mt_head.parameters():
-        param.detach_()
+
     
     
     curr_epoch=0
@@ -328,43 +316,25 @@ def main():
     if use_pretrained:
         #if training should resume from checkpoint
         print('load model from %s ...' % (save_model_path+pth_name))
-        checkpoint = torch.load(save_model_path+pth_name)
+        checkpoint = torch.load(save_model_path+init_name)
 
         backbone.load_state_dict(checkpoint['state_dict_backbone'])
         head.load_state_dict(checkpoint['state_dict_head'])
-        optimizer.load_state_dict(checkpoint['optimizer'])
-        mt_backbone.load_state_dict(checkpoint['state_dict_ema_backbone'])
-        mt_head.load_state_dict(checkpoint['state_dict_ema_head'])
-        mlp.load_state_dict(checkpoint['state_dict_mlp'])
+        #optimizer.load_state_dict(checkpoint['optimizer'])
 
-        print("epoch trained from checkpoint: " + str(checkpoint['epoch']))
-        curr_epoch = checkpoint['epoch']
+        #mlp.load_state_dict(checkpoint['state_dict_mlp'])
+
+        #print("epoch trained from checkpoint: " + str(checkpoint['epoch']))
+        #curr_epoch = checkpoint['epoch']
         print('Done!')
 
-    else:
-        #if training starts for the first time 
 
-        print("initializing the weights")
-        checkpoint = torch.load(save_model_path + init_name)
-        head.load_state_dict(checkpoint['state_dict_head'])
-        backbone.load_state_dict(checkpoint['state_dict_backbone'])
-        
-        full_model = SegFormer(backbone, head)
-
-        
-        #upload weights to the  parts
-        head = upload_pretrained_weights(head, full_model.decode_head)
-        backbone = upload_pretrained_weights(backbone, full_model.backbone)
-        mt_head = upload_pretrained_weights(mt_head, full_model.decode_head)
-        mt_backbone = upload_pretrained_weights(mt_backbone, full_model.backbone)
-        del full_model
 
     if torch.cuda.is_available():
         backbone.cuda()
         mlp.cuda()
         head.cuda()
-        mt_backbone.cuda()
-        mt_head.cuda()
+
     max_epochs = 50
 
 
@@ -374,7 +344,7 @@ def main():
     loss_dice = DiceLoss()
     loss_CE_cons = nn.CrossEntropyLoss()
 
-    train(backbone, mlp, head, mt_backbone, mt_head, 
+    train(backbone, mlp, head, None, None, 
           data_syn_train, contrastive_dataloader, data_real_train , data_syn_val, loss_dice, loss_CE, loss_CE_cons, optimizer, curr_epoch, max_epochs)
     
 

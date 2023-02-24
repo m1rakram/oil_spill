@@ -37,8 +37,8 @@ class CropImage(object):
             image = transforms.Resize((self.output_size, self.output_size), transforms.InterpolationMode.BILINEAR)(image)
 
         elif(rand_num>0.6):
-            posx = np.random.randint(0, 680 - image_h)
-            posy = np.random.randint(0, 680 - image_w)
+            posx = np.random.randint(0, 1024 - image_h)
+            posy = np.random.randint(0, 1024 - image_w)
             image = F.crop(image, posx, posy, image_h, image_w)
         
         else:
@@ -122,7 +122,7 @@ class Syn_Augmentation(object):
         rand_num = np.random.uniform(0.0,1.0)
 
         if(rand_num > p):
-            image = image + torch.randn(image.size()) * 1.0     # 1 is std and 0 is mean
+            image = image + torch.randn(image.size()) * 2.0     # 1 is std and 0 is mean
         return image, label
 
 
